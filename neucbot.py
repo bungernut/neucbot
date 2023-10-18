@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from __future__ import division
-from past.utils import old_div
+#from __future__ import print_function
+#from __future__ import division
+#from past.utils import old_div
 import sys
 import os
 sys.path.insert(0, './Scripts/')
@@ -149,9 +149,8 @@ def loadChainAlphaList(fname):
             print('\t', aList_forIso, file=constants.ofile)
         # ene -энергия, intensity - вероятность распада в изотоп из предыдущего
         for [ene, intensity] in aList_forIso:
-            alpha_list.append([ene, old_div(intensity*br, 100)])
+            alpha_list.append([ene, (intensity*br) / 100]) #old_div# 
             # print(ene, '\t\t', old_div(intensity*br,100))
-    # список из [энергии, вероятность появления такой частицы в цепи] для всех элементов в цепи
     return alpha_list
 
 
@@ -159,20 +158,17 @@ def readTargetMaterial(fname):
     f = open(fname)  # f = Materials/Acrylic.dat
     mat_comp = []
     tokens = [line.split() for line in f.readlines()]
-    for line in tokens:  # Читаем файл из 4х столбцов: название элемента,
-        # его массовое число, процентное содержание оного в веществе
-        # и название базы данных, откуда его взять (J / T)
+    for line in tokens:  
         if len(line) < 3:
             continue
         if line[0][0] == '#':
             continue
-        ele = line[0].lower()  # считываем данные
+        ele = line[0].lower()  
         A = int(line[1])
         frac = float(line[2])
         basename = line[3].lower() if len(line) == 4 else 't'
 
         if A == 0:
-            # массовые числа изотопов ele
             natIso_list = gni.findIsotopes(ele).split()
             for A_i in natIso_list:  # разные массовые числа одного изтопа по очереди`
                 # ищет распространённость конкретного изотопа
@@ -247,8 +243,7 @@ def calcStoppingPower(e_alpha_MeV, mat_comp):
             # entry and the previous one
             if e_curr > e_alpha:
                 first = False
-                sp_alpha = old_div((sp_curr-sp_last) *
-                                   (e_alpha-e_last), (e_curr-e_last)) + sp_last
+                sp_alpha = ((sp_curr-sp_last) * (e_alpha-e_last))/(e_curr-e_last) + sp_last #old_div#
                 sp_found = True
                 break
             # Otherwise, keep looking for the entry
@@ -258,7 +253,7 @@ def calcStoppingPower(e_alpha_MeV, mat_comp):
         # if the alpha energy is too high for the list, use the highest energy on the list
         if not sp_found:
             sp_alpha = sp_last
-        sp_total += old_div(sp_alpha * mat_comp_reduced[mat], 100)
+        sp_total += (sp_alpha * mat_comp_reduced[mat])/100 #old_div#
     return sp_total
 
 
@@ -315,7 +310,7 @@ def getMatTerm(mat, mat_comp):
     # mat structure: ele,A,frac,basename
     A = mat.A
     conc = mat.frac/100.
-    mat_term = old_div((constants.N_A * conc), A)
+    mat_term = (constants.N_A * conc) / A #old_div#
     return mat_term
 
 
@@ -377,16 +372,14 @@ def getIsotopeDifferentialNSpec(e_a, ele, A, basename):
         # line[6] = Pre-eq ratio
         # convert from mb/MeV to cm^2/MeV
         energy = int(float(line[0])*constants.MeV_to_keV)   # Умножаем на 1000
-        sigma = old_div(float(line[1])*constants.mb_to_cm2,
-                        constants.MeV_to_keV)    # Делим на 10^30
-        spec[energy] = sigma * old_div(readTotalNXsect(e_a, ele, A,
-                                       basename), readTotalNXsect(e_a, ele, A, 't'))  # Нормировка
+        sigma = (float(line[1])*constants.mb_to_cm2) / constants.MeV_to_keV #old_div#
+        spec[energy] = sigma * readTotalNXsect(e_a, ele, A, basename) / readTotalNXsect(e_a, ele, A, 't') #old_div#
     return spec
 
 
 # Histo - распределение сечения нейтронов по энергии их выхода для конкретных альфы и атома
 def rebin(histo, step, minbin, maxbin):
-    nbins = old_div((maxbin-minbin), step)   # Количество столбцов в спектре
+    nbins = (maxbin-minbin) / step   #old_div#
     newhisto = {}   #
     normhisto = {}  #
     for i in sorted(histo):  # Сортирует по энергии выхода сечения нейтронов и перебирвет их
@@ -417,7 +410,7 @@ def rebin(histo, step, minbin, maxbin):
                 normhisto[overflowbin] = delta
         # Otherwise, calculate the bin
         # Расставляет newbin вместо i на расстояниях, кратных 100кэВ
-        newbin = int(minbin+(int(old_div((i-minbin), step))*step))
+        newbin = int(minbin+(int((i-minbin) / step)*step)) #old_div#
         if newbin in newhisto:  # newhisto - новая гистограмма, в которой столбцы стоят на расстояниях кратных delta_bin = 100keV
             # Сечение для данной энергии * на разницу сечений
             newhisto[newbin] += histo[i]*delta
@@ -556,10 +549,10 @@ def run_alpha(alpha_list, mat_comp, e_alpha_step):
     for [e_a, intensity] in alpha_ene_cdf:     # Перебор по энергии альфы
         #print(e_a)
         counter += 1
-        if counter % (int(old_div(len(alpha_ene_cdf), 100))) == 0:
+        if counter % (int(len(alpha_ene_cdf) / 100)) == 0:
             sys.stdout.write('\r')
-            sys.stdout.write('[%-100s] %d%%' % ('='*int(old_div(counter*100,
-                             len(alpha_ene_cdf))), old_div(100*counter, len(alpha_ene_cdf))))
+            sys.stdout.write('[%-100s] %d%%' % ('='*int((counter*100)/len(alpha_ene_cdf)), #old_div#
+                                                (100*counter) / len(alpha_ene_cdf)))  #old_div#
             sys.stdout.flush()
         
         stopping_power = calcStoppingPower(e_a, mat_comp)
@@ -593,8 +586,7 @@ def run_alpha(alpha_list, mat_comp, e_alpha_step):
                 delta_ea = e_a
 
             # подынтегральное выражение
-            prefactors = old_div(
-                (intensity/100.)*mat_term*delta_ea, stopping_power)
+            prefactors = ((intensity/100.)*mat_term*delta_ea)  / stopping_power
 
             # Значение просуммированного спектра (без вычисления интеграла)
             xsect = prefactors * \
@@ -617,8 +609,8 @@ def run_alpha(alpha_list, mat_comp, e_alpha_step):
             #'''
 
     sys.stdout.write('\r')
-    sys.stdout.write('[%-100s] %d%%' % ('='*int(old_div((counter*100),
-                     len(alpha_ene_cdf))), old_div(100*(counter+1), len(alpha_ene_cdf))))
+    sys.stdout.write('[%-100s] %d%%' % ('='*int((counter*100) / len(alpha_ene_cdf)), #old_div#
+                                        int((100*(counter+1)) / len(alpha_ene_cdf)))) #old_div#
     sys.stdout.flush()
     print('', file=sys.stdout)
     # print out total spectrum
