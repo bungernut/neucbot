@@ -1,5 +1,4 @@
 #!/usr/bin/python
-standard_library.install_aliases()
 import urllib.request, urllib.error, urllib.parse
 import re
 import sys
